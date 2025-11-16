@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#include <omp.h>
 
 #include "solution.hpp"
 
@@ -299,14 +300,35 @@ Status aes256_gcm(const uint8_t* plaintext, uint8_t* ciphertext,
     memcpy(counter, j0, 16);
     inc32(counter);
     
-    for (size_t i = 0; i < plaintext_len; i += 16) {
-        uint8_t keystream[16];
-        aes256_encrypt(counter, keystream, key);
-        inc32(counter);
+    // Параллельное шифрование блоков в CTR режиме
+    size_t num_blocks = (plaintext_len + 15) / 16;
+    
+    if (num_blocks > 0) {
+        std::vector<uint8_t> keystreams(num_blocks * 16);
         
-        size_t block_len = (i + 16 <= plaintext_len) ? 16 : plaintext_len - i;
-        for (size_t j = 0; j < block_len; j++) {
-            ciphertext[i + j] = plaintext[i + j] ^ keystream[j];
+        // Генерация keystream параллельно
+        #pragma omp parallel for schedule(static)
+        for (size_t block_idx = 0; block_idx < num_blocks; block_idx++) {
+            uint8_t block_counter[16];
+            memcpy(block_counter, counter, 16);
+            
+            // Инкремент счётчика для этого блока
+            uint32_t val = ((uint32_t)block_counter[12] << 24) |
+                           ((uint32_t)block_counter[13] << 16) |
+                           ((uint32_t)block_counter[14] << 8) |
+                           ((uint32_t)block_counter[15]);
+            val += block_idx;
+            block_counter[12] = (val >> 24) & 0xff;
+            block_counter[13] = (val >> 16) & 0xff;
+            block_counter[14] = (val >> 8) & 0xff;
+            block_counter[15] = val & 0xff;
+            
+            aes256_encrypt(block_counter, &keystreams[block_idx * 16], key);
+        }
+        
+        // XOR с plaintext
+        for (size_t i = 0; i < plaintext_len; i++) {
+            ciphertext[i] = plaintext[i] ^ keystreams[i];
         }
     }
     
