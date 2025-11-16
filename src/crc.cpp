@@ -4,7 +4,7 @@
 
 #include "solution.hpp"
 
-static constexpr uint32_t g_tbl[] = {
+static constexpr uint32_t crc_table[] = {
     // 1-byte tabular
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
     0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
@@ -524,29 +524,53 @@ static constexpr uint32_t g_tbl[] = {
     0xf088c1a2, 0x5ee05033, 0x7728e4c1, 0xd9407550, 0x24b98d25, 0x8ad11cb4, 0xa319a846, 0x0d7139d7,
 };
 
-
 Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
     uint32_t crc = 0xFFFFFFFF;
-    
     size_t i = 0;
+
+    for (; i + 15 < data_len; i += 16) {
+        uint32_t c0 = data[i+0] ^ (crc & 0xFF);
+        uint32_t c1 = data[i+1] ^ ((crc >> 8) & 0xFF);
+        uint32_t c2 = data[i+2] ^ ((crc >> 16) & 0xFF);
+        uint32_t c3 = data[i+3] ^ ((crc >> 24) & 0xFF);
+                
+        crc = 
+            crc_table[0*256 + data[i+15]] ^
+            crc_table[1*256 + data[i+14]] ^
+            crc_table[2*256 + data[i+13]] ^
+            crc_table[3*256 + data[i+12]] ^
+            crc_table[4*256 + data[i+11]] ^
+            crc_table[5*256 + data[i+10]] ^
+            crc_table[6*256 + data[i+9]] ^
+            crc_table[7*256 + data[i+8]] ^
+            crc_table[8*256 + data[i+7]] ^
+            crc_table[9*256 + data[i+6]] ^
+            crc_table[10*256 + data[i+5]] ^
+            crc_table[11*256 + data[i+4]] ^
+            crc_table[12*256 + c3] ^
+            crc_table[13*256 + c2] ^
+            crc_table[14*256 + c1] ^
+            crc_table[15*256 + c0];
+    }
+
     for (; i + 7 < data_len; i += 8) {
         uint32_t c0 = data[i+0] ^ (crc & 0xFF);
         uint32_t c1 = data[i+1] ^ ((crc >> 8) & 0xFF);
         uint32_t c2 = data[i+2] ^ ((crc >> 16) & 0xFF);
         uint32_t c3 = data[i+3] ^ ((crc >> 24) & 0xFF);
         crc = 
-            g_tbl[0*256 + data[i+7]] ^
-            g_tbl[1*256 + data[i+6]] ^
-            g_tbl[2*256 + data[i+5]] ^
-            g_tbl[3*256 + data[i+4]] ^
-            g_tbl[4*256 + c3] ^
-            g_tbl[5*256 + c2] ^
-            g_tbl[6*256 + c1] ^
-            g_tbl[7*256 + c0];
+            crc_table[0*256 + data[i+7]] ^
+            crc_table[1*256 + data[i+6]] ^
+            crc_table[2*256 + data[i+5]] ^
+            crc_table[3*256 + data[i+4]] ^
+            crc_table[4*256 + c3] ^
+            crc_table[5*256 + c2] ^
+            crc_table[6*256 + c1] ^
+            crc_table[7*256 + c0];
     }
 
     for (; i < data_len; ++i) {
-        crc = (crc >> 8) ^ g_tbl[(crc ^ data[i]) & 0xFF];
+        crc = (crc >> 8) ^ crc_table[(crc ^ data[i]) & 0xFF];
     }
 
     *result = crc ^ 0xFFFFFFFF;
