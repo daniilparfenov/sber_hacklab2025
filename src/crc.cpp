@@ -527,11 +527,28 @@ static constexpr uint32_t g_tbl[] = {
 
 Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
     uint32_t crc = 0xFFFFFFFF;
+    
+    size_t i = 0;
+    for (; i + 7 < data_len; i += 8) {
+        uint32_t c0 = data[i+0] ^ (crc & 0xFF);
+        uint32_t c1 = data[i+1] ^ ((crc >> 8) & 0xFF);
+        uint32_t c2 = data[i+2] ^ ((crc >> 16) & 0xFF);
+        uint32_t c3 = data[i+3] ^ ((crc >> 24) & 0xFF);
+        crc = 
+            g_tbl[0*256 + data[i+7]] ^
+            g_tbl[1*256 + data[i+6]] ^
+            g_tbl[2*256 + data[i+5]] ^
+            g_tbl[3*256 + data[i+4]] ^
+            g_tbl[4*256 + c3] ^
+            g_tbl[5*256 + c2] ^
+            g_tbl[6*256 + c1] ^
+            g_tbl[7*256 + c0];
+    }
 
-    for (uint32_t i = 0; i < data_len; i++) {
+    for (; i < data_len; ++i) {
         crc = (crc >> 8) ^ g_tbl[(crc ^ data[i]) & 0xFF];
     }
-    *result = crc ^ 0xFFFFFFFF;
 
+    *result = crc ^ 0xFFFFFFFF;
     return STATUS_OK;
 }
