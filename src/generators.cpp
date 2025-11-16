@@ -80,7 +80,7 @@ Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
     return STATUS_OK;
 }
 
-Status generate_uniform(size_t n, uint64_t seed, float min, float max, float* result) {
+Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* result) {
     size_t T = omp_get_max_threads();
     size_t block = n / T;
 
