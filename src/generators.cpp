@@ -32,7 +32,7 @@ Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end   = (t == T-1 ? n : start + block);
+        size_t end   = (t == (int)(T-1) ? n : start + block);
 
         // вычисляем стартовое состояние для потока
         uint32_t thread_seed = skip_ahead(seed, start);
@@ -54,7 +54,7 @@ Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* re
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end = (t == T - 1 ? n : start + block);
+        size_t end = (t == (int)(T-1) ? n : start + block);
 
         uint32_t thread_seed = skip_ahead(seed, start);
         my_lcg gen(thread_seed);
@@ -77,7 +77,7 @@ Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* r
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end   = (t == T - 1 ? n : start + block);
+        size_t end   = (t == (int)(T-1) ? n : start + block);
 
         uint32_t thread_seed = skip_ahead(seed, start);
         my_lcg gen(thread_seed);
@@ -111,7 +111,7 @@ Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end   = (t == T - 1 ? n : start + block);
+        size_t end   = (t == (int)(T-1) ? n : start + block);
 
         uint32_t thread_seed = skip_ahead(seed, start);
         my_lcg gen(thread_seed);
@@ -136,7 +136,7 @@ Status generate_bernoulli(size_t n, uint32_t seed, float probability, float* res
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end   = (t == T - 1 ? n : start + block);
+        size_t end   = (t == (int)(T-1) ? n : start + block);
 
         uint32_t thread_seed = skip_ahead(seed, start);
         my_lcg gen(thread_seed);
