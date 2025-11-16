@@ -131,10 +131,10 @@ BenchmarkResult benchmark_crc32() {
 int run_performance() {
     BenchmarkResult results[7];
     results[0] = benchmark_bits();
-//    results[1] = benchmark_uniform();
-//    results[2] = benchmark_norm();
-//    results[3] = benchmark_exponential();
-//    results[4] = benchmark_bernoulli();
+    results[1] = benchmark_uniform();
+    results[2] = benchmark_norm();
+    results[3] = benchmark_exponential();
+    results[4] = benchmark_bernoulli();
 //    results[5] = benchmark_aes256_gcm();
 //    results[6] = benchmark_crc32();
     
