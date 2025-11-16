@@ -1,18 +1,49 @@
 #include <cstddef> 
 #include <cstdint>
 #include <random>
+#include <omp.h>
 
 #include "solution.hpp"
 #include "own_gen.cpp"
+
+uint32_t skip_ahead(uint32_t seed, uint64_t k) {
+    // вычислить a^k mod m
+    uint64_t a = my_lcg::multiplier;
+    uint64_t m = my_lcg::modulus;
+
+    uint64_t ak = 1;
+    while (k) {
+        if (k & 1) ak = (ak * a) % m;
+        a = (a * a) % m;
+        k >>= 1;
+    }
+    return (seed * ak) % m;
+}
 
 inline float uint32_to_float(uint32_t x, float min, float max) {
     return min + (max - min) * (x / 2147483647.0f); // modulus - 1
 }
 
 Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
-    my_lcg gen(seed);
-    for (size_t i = 0; i < n; ++i) {
-        result[i] = gen();
+    size_t T = omp_get_max_threads();
+    size_t block = n / T;
+
+    uint64_t a = my_lcg::multiplier;
+
+    #pragma omp parallel
+    {
+        int t = omp_get_thread_num();
+        size_t start = t * block;
+        size_t end   = (t == T-1 ? n : start + block);
+
+        // вычисляем стартовое состояние для потока
+        uint32_t thread_seed = skip_ahead(seed, start);
+
+        my_lcg gen(thread_seed);
+
+        for (size_t i = start; i < end; ++i) {
+            result[i] = gen();
+        }
     }
     return STATUS_OK;
 }

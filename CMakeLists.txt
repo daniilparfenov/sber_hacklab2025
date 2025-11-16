@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Flags equivalent to your Makefile
-add_compile_options(-O3 -DNDEBUG -Wall -Wextra)
-add_link_options(-flto -O3)
+add_compile_options(-O3 -DNDEBUG -Wall -Wextra -fopenmp)
+add_link_options(-flto -O3 -fopenmp)
 
 # Source discovery (equivalent to wildcard)
 file(GLOB HACK_SRCS hackathon_internals/*.cpp)

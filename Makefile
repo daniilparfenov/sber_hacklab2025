@@ -1,7 +1,7 @@
 TARGET = app
 CXX = g++
-CXXFLAGS = -O3 -DNDEBUG -Wall -Wextra -std=c++11 -Ihackathon_internals -Isrc
-LDFLAGS = -flto -O3
+CXXFLAGS = -O3 -DNDEBUG -Wall -Wextra -std=c++11 -Ihackathon_internals -Isrc -fopenmp
+LDFLAGS = -flto -O3 -fopenmp
 
 SRCS = $(wildcard hackathon_internals/*.cpp src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
@@ -17,7 +17,3 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 all: $(TARGET)
-
-# Upload solution to OBS
-upload:
-	./upload_solution.sh
