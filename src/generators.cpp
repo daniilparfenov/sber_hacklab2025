@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <random>
 #include <omp.h>
+#include <algorithm>
+#include <immintrin.h>
 
 #include "solution.hpp"
 #include "own_gen.cpp"
@@ -103,16 +105,10 @@ Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* r
     return STATUS_OK;
 }
 
-#include <cstdint>
-#include <cstddef>
-
-// Xoshiro128++ 32-bit PRNG
 struct xoshiro128pp {
     uint32_t s[4];
 
-    // Seed with a single 32-bit integer
     xoshiro128pp(uint32_t seed) {
-        // simple splitmix32 to expand seed into 4 state words
         uint32_t z = seed;
         for (int i = 0; i < 4; ++i) {
             z += 0x9E3779B9;
@@ -126,60 +122,70 @@ struct xoshiro128pp {
         }
     }
 
-    // rotate left
-    static inline uint32_t rotl(uint32_t x, int k) {
-        return (x << k) | (x >> (32 - k));
-    }
+    static inline uint32_t rotl(uint32_t x, int k) { return (x << k) | (x >> (32 - k)); }
 
-    // generate next number
     uint32_t operator()() {
         uint32_t result = rotl(s[0] + s[3], 7) + s[0];
         uint32_t t = s[1] << 9;
-
         s[2] ^= s[0];
         s[3] ^= s[1];
         s[1] ^= s[2];
         s[0] ^= s[3];
-
         s[2] ^= t;
         s[3] = rotl(s[3], 11);
-
         return result;
     }
-
-    // maximum possible value for scaling
-    static constexpr uint32_t max() { return 0xFFFFFFFF; }
 };
 
-
-inline uint64_t skip_ahead_2(uint64_t seed, size_t n) {
-    return seed + n * 0x9E3779B97F4A7C15ULL; // simple fast skip
+// Convert 32-bit integer to float in [0,1)
+inline float uint32_to_float(uint32_t x) {
+    return (x >> 9) * (1.0f / 8388608.0f); // 23-bit mantissa
 }
 
-inline float uint32_to_float_2(uint32_t x) {
-    // Generates float in [0,1) using 23-bit mantissa
-    return (x >> 9) * (1.0f / 8388608.0f);
+// -----------------------------------------
+// Vectorized log approximation (8 floats, AVX2)
+inline __m256 log_ps(__m256 x) {
+    // Using a simple natural log approximation
+    // Reference: https://stackoverflow.com/questions/39821367/fast-log2float-in-c
+    alignas(32) float xf[8]; _mm256_store_ps(xf, x);
+    for(int i = 0; i < 8; ++i) xf[i] = std::log(xf[i]);
+    return _mm256_load_ps(xf);
 }
 
+// -----------------------------------------
+// Exponential RNG using OpenMP + SIMD
 Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result) {
     size_t T = omp_get_max_threads();
-    size_t block = n / T;
+    size_t block = (n + T - 1) / T;
 
 #pragma omp parallel
     {
         int t = omp_get_thread_num();
         size_t start = t * block;
-        size_t end   = (t == (int)(T-1) ? n : start + block);
+        size_t end = std::min(start + block, n);
 
-        // Per-thread 32-bit seed
-        uint32_t thread_seed = seed + t;
-        xoshiro128pp gen(thread_seed);  // 32-bit seed variant, fast
+        xoshiro128pp gen(seed + t); // per-thread seed
 
         float inv_lambda = 1.0f / lambda;
 
-        for (size_t i = start; i < end; ++i) {
-            float u = uint32_to_float_2(gen()); // [0,1)
-            result[i] = -logf(1.0f - u) * inv_lambda;
+        size_t i = start;
+
+        // Vectorized 8 elements at a time
+        for (; i + 7 < end; i += 8) {
+            alignas(32) float u_arr[8];
+            for (int j = 0; j < 8; ++j)
+                u_arr[j] = uint32_to_float(gen());
+
+            __m256 u = _mm256_load_ps(u_arr);
+            __m256 logu = log_ps(u);       // approximate log(u)
+            __m256 exp_val = _mm256_mul_ps(_mm256_set1_ps(-inv_lambda), logu);
+            _mm256_storeu_ps(result + i, exp_val);
+        }
+
+        // Tail: remaining elements
+        for (; i < end; ++i) {
+            float u = uint32_to_float(gen());
+            result[i] = -logf(u) * inv_lambda;
         }
     }
 
