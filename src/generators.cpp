@@ -5,6 +5,10 @@
 #include "solution.hpp"
 #include "own_gen.cpp"
 
+inline float uint32_to_float(uint32_t x, float min, float max) {
+    return min + (max - min) * (x / 2147483647.0f); // modulus - 1
+}
+
 Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
     my_lcg gen(seed);
     for (size_t i = 0; i < n; ++i) {
@@ -15,20 +19,22 @@ Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
 
 Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* result) {
     my_lcg gen(seed);
-    std::uniform_real_distribution<float> d{min, max};
 
     for (size_t i = 0; i < n; ++i) {
-        result[i] = d(gen);
+        result[i] = uint32_to_float(gen(), min, max);
     }
     return STATUS_OK;
 }
 
 Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* result) {
     my_lcg gen(seed);
-    std::normal_distribution<float> d{mean, stddev};
 
     for (size_t i = 0; i < n; ++i) {
-        result[i] = d(gen);
+        float u1 = uint32_to_float(gen(), 0.f, 1.f);
+        float u2 = uint32_to_float(gen(), 0.f, 1.f);
+        float r = sqrtf(-2.f * logf(u1));
+        float theta = 2.f * 3.14159265359f * u2;
+        result[i] = mean + stddev * (r * cosf(theta));
     }
 
     return STATUS_OK;
@@ -36,10 +42,10 @@ Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* r
 
 Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result) {
     my_lcg gen(seed);
-    std::exponential_distribution<float> d{lambda};
 
     for (size_t i = 0; i < n; ++i) {
-        result[i] = d(gen);
+        float u = uint32_to_float(gen(), 0.f, 1.f);
+        result[i] = -logf(1.f - u) / lambda;
     }
 
     return STATUS_OK;
@@ -47,10 +53,9 @@ Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result
 
 Status generate_bernoulli(size_t n, uint32_t seed, float probability, float* result) {
     my_lcg gen(seed);
-    std::bernoulli_distribution d{probability};
 
     for (size_t i = 0; i < n; ++i) {
-        result[i] = d(gen);
+        result[i] = (gen() < probability * my_lcg::max()) ? 1.f : 0.f;
     }
 
     return STATUS_OK;
