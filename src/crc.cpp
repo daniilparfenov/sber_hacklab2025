@@ -615,7 +615,7 @@ Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
         return STATUS_OK;
     }
 
-    size_t chunk_size = 4096*1024;
+    size_t chunk_size = 8192*1024;
     size_t num_blocks = (data_len + chunk_size - 1) / chunk_size;
     std::vector<uint32_t> crc_blocks(num_blocks);
 
