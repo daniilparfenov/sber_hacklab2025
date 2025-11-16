@@ -1,0 +1,16 @@
+# Build artifacts
+app
+*.o
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Other
+*.dSYM/
+*.su
+*.gch
+
