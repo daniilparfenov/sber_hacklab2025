@@ -7,7 +7,6 @@
 #include "own_gen.cpp"
 
 uint32_t skip_ahead(uint32_t seed, uint64_t k) {
-    // вычислить a^k mod m
     uint64_t a = my_lcg::multiplier;
     uint64_t m = my_lcg::modulus;
 
@@ -34,7 +33,6 @@ Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
         size_t start = t * block;
         size_t end   = (t == (int)(T-1) ? n : start + block);
 
-        // вычисляем стартовое состояние для потока
         uint32_t thread_seed = skip_ahead(seed, start);
 
         my_lcg gen(thread_seed);
@@ -83,11 +81,9 @@ Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* r
         my_lcg gen(thread_seed);
 
         for (size_t i = start; i < end; i += 2) {
-            // uniform(0,1)
             float u1 = uint32_to_float(gen(), 0.0f, 1.0f);
             float u2 = uint32_to_float(gen(), 0.0f, 1.0f);
 
-            // Box-Muller
             float r = sqrtf(-2.0f * logf(u1));
             float theta = 6.28318530718f * u2; // 2π
 
