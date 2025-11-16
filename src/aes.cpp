@@ -104,7 +104,7 @@ static void sub_bytes(uint8_t *s) {
         s[i] = SBOX[s[i]];
 }
 
-static void shift_rows(uint8_t *s) {
+static inline void shift_rows(uint8_t *s) {
     uint8_t t;
     t = s[1]; s[1] = s[5]; s[5] = s[9]; s[9] = s[13]; s[13] = t;
     t = s[2]; s[2] = s[10]; s[10] = t;
@@ -123,11 +123,11 @@ static void mix_columns(uint8_t *s) {
     }
 }
 
-static void add_round_key(uint8_t *s, const uint8_t *k) {
+static inline void add_round_key(uint8_t *s, const uint8_t *k) {
     for (int i = 0; i < 16; i++) s[i] ^= k[i];
 }
 
-static uint8_t rcon(uint8_t i) {
+static inline uint8_t rcon(uint8_t i) {
     uint8_t c = 1;
     while (i-- > 1) c = gmul(c, 2);
     return c;
@@ -256,7 +256,7 @@ static void ghash(const uint8_t *h, const uint8_t *aad, size_t aad_len,
     memcpy(tag, x, 16);
 }
 
-static void inc32(uint8_t *counter) {
+static inline void inc32(uint8_t *counter) {
     uint32_t val = ((uint32_t)counter[12] << 24) |
                    ((uint32_t)counter[13] << 16) |
                    ((uint32_t)counter[14] << 8) |
