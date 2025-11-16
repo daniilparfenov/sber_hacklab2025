@@ -553,22 +553,6 @@ Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
             crc_table[15*256 + c0];
     }
 
-    for (; i + 7 < data_len; i += 8) {
-        uint32_t c0 = data[i+0] ^ (crc & 0xFF);
-        uint32_t c1 = data[i+1] ^ ((crc >> 8) & 0xFF);
-        uint32_t c2 = data[i+2] ^ ((crc >> 16) & 0xFF);
-        uint32_t c3 = data[i+3] ^ ((crc >> 24) & 0xFF);
-        crc = 
-            crc_table[0*256 + data[i+7]] ^
-            crc_table[1*256 + data[i+6]] ^
-            crc_table[2*256 + data[i+5]] ^
-            crc_table[3*256 + data[i+4]] ^
-            crc_table[4*256 + c3] ^
-            crc_table[5*256 + c2] ^
-            crc_table[6*256 + c1] ^
-            crc_table[7*256 + c0];
-    }
-
     for (; i < data_len; ++i) {
         crc = (crc >> 8) ^ crc_table[(crc ^ data[i]) & 0xFF];
     }
