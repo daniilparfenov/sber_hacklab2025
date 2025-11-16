@@ -1,7 +1,7 @@
 TARGET = app
 CXX = g++
-CXXFLAGS = -O3 -DNDEBUG -Wall -Wextra -std=c++11 -Ihackathon_internals -Isrc -fopenmp
-LDFLAGS = -flto -O3 -fopenmp
+CXXFLAGS = -O3 -DNDEBUG -Wall -Wextra -std=c++11 -Ihackathon_internals -Isrc -fopenmp -mavx2 -mfma
+LDFLAGS = -flto -O3 -fopenmp -mavx2 -mfma
 
 SRCS = $(wildcard hackathon_internals/*.cpp src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
