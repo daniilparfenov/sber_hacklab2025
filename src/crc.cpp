@@ -1,8 +1,13 @@
 #include <cstddef> 
 #include <cstdint>
 #include <cmath>
+#include <vector>
+#include <cstring>
+#include <omp.h>
 
 #include "solution.hpp"
+
+constexpr uint32_t POLY = 0xEDB88320;
 
 static constexpr uint32_t crc_table[] = {
     // 1-byte tabular
@@ -524,7 +529,7 @@ static constexpr uint32_t crc_table[] = {
     0xf088c1a2, 0x5ee05033, 0x7728e4c1, 0xd9407550, 0x24b98d25, 0x8ad11cb4, 0xa319a846, 0x0d7139d7,
 };
 
-Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
+Status crc32_block(const uint8_t* data, size_t data_len, uint32_t* result) {
     uint32_t crc = 0xFFFFFFFF;
     size_t i = 0;
 
@@ -558,5 +563,75 @@ Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
     }
 
     *result = crc ^ 0xFFFFFFFF;
+    return STATUS_OK;
+}
+
+uint32_t gf2_matrix_times(uint32_t* mat, uint32_t vec) {
+    uint32_t sum = 0;
+    int i = 0;
+    while (vec) {
+        if (vec & 1) sum ^= mat[i];
+        vec >>= 1;
+        i++;
+    }
+    return sum;
+}
+
+void gf2_matrix_square(uint32_t* square, uint32_t* mat) {
+    for (int i = 0; i < 32; i++)
+        square[i] = gf2_matrix_times(mat, mat[i]);
+}
+
+uint32_t crc32_combine(uint32_t crc1, uint32_t crc2, size_t len2) {
+    uint32_t even[32], odd[32];
+
+    odd[0] = POLY;
+    for (int i = 1; i < 32; i++)
+        odd[i] = 1U << (i-1);
+
+    gf2_matrix_square(even, odd);
+
+    uint32_t crc = crc1;
+    size_t len = len2;
+
+    do {
+        gf2_matrix_square(odd, even);
+        if (len & 1) crc = gf2_matrix_times(even, crc);
+        len >>= 1;
+        if (len == 0) break;
+        gf2_matrix_square(even, odd);
+        if (len & 1) crc = gf2_matrix_times(odd, crc);
+        len >>= 1;
+    } while (len != 0);
+
+    crc ^= crc2;
+    return crc;
+}
+
+Status crc32(const uint8_t* data, size_t data_len, uint32_t* result) {
+
+     if (data_len == 0) {
+        *result = 0;  
+        return STATUS_OK;
+    }
+
+    size_t chunk_size = 4096*1024;
+    size_t num_blocks = (data_len + chunk_size - 1) / chunk_size;
+    std::vector<uint32_t> crc_blocks(num_blocks);
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < num_blocks; ++i) {
+        size_t start = i * chunk_size;
+        size_t len = std::min(chunk_size, data_len - start);
+        crc32_block(data + start, len, &crc_blocks[i]);
+    }
+
+    uint32_t crc_total = crc_blocks[0];
+    for (size_t i = 1; i < num_blocks; ++i) {
+        size_t len = std::min(chunk_size, data_len - i * chunk_size);
+        crc_total = crc32_combine(crc_total, crc_blocks[i], len);
+    }
+
+    *result = crc_total;
     return STATUS_OK;
 }
