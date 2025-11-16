@@ -29,10 +29,19 @@ Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* re
 Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* result) {
     my_lcg gen(seed);
 
-    std::normal_distribution<float> d{mean, stddev};
+    for (size_t i = 0; i < n; i += 2) {
+        // Генерация двух uniform чисел [0,1)
+        float u1 = uint32_to_float(gen(), 0.0f, 1.0f);
+        float u2 = uint32_to_float(gen(), 0.0f, 1.0f);
 
-    for (size_t i = 0; i < n; ++i) {
-        result[i] = d(gen);
+        // Box-Muller преобразование
+        float r = sqrtf(-2.0f * logf(u1));
+        float theta = 2.0f * 3.14159265358979323846f * u2;
+
+        // Получаем два нормальных числа
+        result[i] = mean + stddev * r * cosf(theta);
+        if (i + 1 < n)
+            result[i + 1] = mean + stddev * r * sinf(theta);
     }
 
     return STATUS_OK;
@@ -42,8 +51,7 @@ Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result
     my_lcg gen(seed);
 
     for (size_t i = 0; i < n; ++i) {
-        float u = uint32_to_float(gen(), 0.f, 1.f);
-        result[i] = -logf(1.f - u) / lambda;
+        result[i] = -logf(1.0f - uint32_to_float(gen(), 0.f, 1.f)) / lambda;
     }
 
     return STATUS_OK;
@@ -53,7 +61,7 @@ Status generate_bernoulli(size_t n, uint32_t seed, float probability, float* res
     my_lcg gen(seed);
 
     for (size_t i = 0; i < n; ++i) {
-        result[i] = (gen() < probability * my_lcg::max()) ? 1.f : 0.f;
+        result[i] = (uint32_to_float(gen(), 0.0f, 1.0f) < probability) ? 1.0f : 0.0f;
     }
 
     return STATUS_OK;
