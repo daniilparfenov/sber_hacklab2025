@@ -29,12 +29,10 @@ Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* re
 Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* result) {
     my_lcg gen(seed);
 
+    std::normal_distribution<float> d{mean, stddev};
+
     for (size_t i = 0; i < n; ++i) {
-        float u1 = uint32_to_float(gen(), 0.f, 1.f);
-        float u2 = uint32_to_float(gen(), 0.f, 1.f);
-        float r = sqrtf(-2.f * logf(u1));
-        float theta = 2.f * 3.14159265359f * u2;
-        result[i] = mean + stddev * (r * cosf(theta));
+        result[i] = d(gen);
     }
 
     return STATUS_OK;
