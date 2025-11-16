@@ -20,7 +20,11 @@ public:
 
     // Требование: operator()
     result_type operator()() {
-        state = (uint64_t(state) * multiplier) % modulus;
+        // Используем 64-битное умножение для безопасного переполнения
+        uint64_t product = uint64_t(state) * multiplier;
+        // Оптимизация: заменяем модуль через битовые операции
+        state = (product >> 31) + (product & modulus);
+        if (state > modulus) state -= modulus;
         return state;
     }
 };
