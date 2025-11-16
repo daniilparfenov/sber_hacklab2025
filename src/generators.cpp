@@ -3,9 +3,10 @@
 #include <random>
 
 #include "solution.hpp"
+#include "own_gen.cpp"
 
 Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
-    std::minstd_rand0 gen(seed);
+    my_lcg gen(seed);
     for (size_t i = 0; i < n; ++i) {
         result[i] = gen();
     }
@@ -13,7 +14,7 @@ Status generate_bits(size_t n, uint32_t seed, uint32_t* result) {
 }
 
 Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* result) {
-    std::minstd_rand0 gen(seed);
+    my_lcg gen(seed);
     std::uniform_real_distribution<float> d{min, max};
 
     for (size_t i = 0; i < n; ++i) {
@@ -23,7 +24,7 @@ Status generate_uniform(size_t n, uint32_t seed, float min, float max, float* re
 }
 
 Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* result) {
-    std::minstd_rand0 gen(seed);
+    my_lcg gen(seed);
     std::normal_distribution<float> d{mean, stddev};
 
     for (size_t i = 0; i < n; ++i) {
@@ -34,7 +35,7 @@ Status generate_norm(size_t n, uint32_t seed, float mean, float stddev, float* r
 }
 
 Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result) {
-    std::minstd_rand0 gen(seed);
+    my_lcg gen(seed);
     std::exponential_distribution<float> d{lambda};
 
     for (size_t i = 0; i < n; ++i) {
@@ -45,7 +46,7 @@ Status generate_exponential(size_t n, uint32_t seed, float lambda, float* result
 }
 
 Status generate_bernoulli(size_t n, uint32_t seed, float probability, float* result) {
-    std::minstd_rand0 gen(seed);
+    my_lcg gen(seed);
     std::bernoulli_distribution d{probability};
 
     for (size_t i = 0; i < n; ++i) {
